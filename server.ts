@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 
@@ -10,20 +12,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3000;
+// Use Render / Cloud provider PORT if defined, fallback to 3000
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
-// Initialize Gemini SDK with User-Agent header as required
+// Initialize Gemini SDK with User-Agent header only if API key is provided
 const apiKey = process.env.GEMINI_API_KEY || '';
-const ai = new GoogleGenAI({
-  apiKey: apiKey,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    },
-  },
-});
+const ai = apiKey
+  ? new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    })
+  : null;
 
 interface BroadcastRecord {
   id: string;
@@ -115,7 +120,7 @@ Provide an actionable, authoritative, mission-critical assessment report formatt
 Only output valid JSON without markdown code fences or backticks.
 `;
 
-    if (!apiKey) {
+    if (!ai || !apiKey) {
       // Rule-based fallback if API key is not yet set in environment
       return res.json({
         incidentOverview: "Rule-based tactical assessment active. High hydro-meteorological saturation in Chamoli and Rudraprayag sectors with elevated slope shear strain.",
@@ -257,6 +262,9 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 async function startServer() {
+  const distPath = path.resolve(__dirname, 'dist');
+  const indexPath = path.resolve(distPath, 'index.html');
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer } = await import('vite');
     const vite = await createServer({
@@ -269,14 +277,43 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
+    // In production (e.g. Render / Cloud Run), if dist/index.html was not generated during build phase, build automatically
+    if (!fs.existsSync(indexPath)) {
+      console.log('Production Notice: dist/index.html not found. Running vite build automatically...');
+      try {
+        execSync('npx vite build', { stdio: 'inherit' });
+        console.log('Production build completed successfully.');
+      } catch (buildErr) {
+        console.error('Auto-build error during startup:', buildErr);
+      }
+    }
+
+    app.use(express.static(distPath));
     app.get('*', (_req: Request, res: Response) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath, (err) => {
+          if (err) {
+            console.error('Error serving index.html:', err);
+            res.status(500).send('Error serving application');
+          }
+        });
+      } else {
+        res.status(503).send(`
+          <!doctype html>
+          <html>
+            <head><title>System Initializing</title></head>
+            <body style="font-family:sans-serif;background:#020617;color:#f8fafc;padding:40px;text-align:center;">
+              <h2>Disaster Early Warning System Initializing</h2>
+              <p>Please wait a moment while the frontend build completes, then refresh.</p>
+            </body>
+          </html>
+        `);
+      }
     });
   }
 
   app.listen(port, '0.0.0.0', () => {
-    console.log(`Disaster Early Warning Server running on port ${port}`);
+    console.log(`Disaster Early Warning Server running on port ${port} (0.0.0.0:${port})`);
   });
 }
 
