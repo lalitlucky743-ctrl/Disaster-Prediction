@@ -65,20 +65,29 @@ export const PredictiveRiskCards: React.FC<PredictiveRiskCardsProps> = ({
           </div>
         </div>
 
-        {/* Technical Scientific Parameters */}
+        {/* Technical Scientific Parameters with Threshold Legend */}
         <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 mb-3">
           <div>
-            <div className="text-slate-500">Factor of Safety (FoS)</div>
+            <div className="text-slate-500 flex items-center justify-between">
+              <span>Factor of Safety</span>
+              <span className="text-[9px] text-slate-500 font-mono">Crit &lt;1.0</span>
+            </div>
             <div className={`font-mono font-bold ${landslide.factorOfSafety < 1.0 ? 'text-red-400' : landslide.factorOfSafety < 1.25 ? 'text-amber-400' : 'text-emerald-400'}`}>
               {landslide.factorOfSafety} <span className="text-[10px] text-slate-500 font-normal">{landslide.factorOfSafety < 1.0 ? '(Unstable)' : '(Equilibrium)'}</span>
             </div>
           </div>
           <div>
-            <div className="text-slate-500">Soil Saturation</div>
+            <div className="text-slate-500 flex items-center justify-between">
+              <span>Soil Saturation</span>
+              <span className="text-[9px] text-slate-500 font-mono">Crit &gt;85%</span>
+            </div>
             <div className="font-mono font-bold text-slate-200">{landslide.saturationPercentage}%</div>
           </div>
           <div>
-            <div className="text-slate-500">Antecedent Rain (API)</div>
+            <div className="text-slate-500 flex items-center justify-between">
+              <span>Antecedent Rain (API)</span>
+              <span className="text-[9px] text-slate-500 font-mono">&gt;120mm</span>
+            </div>
             <div className="font-mono font-bold text-slate-200">{landslide.antecedentPrecipitationMm} mm</div>
           </div>
           <div>

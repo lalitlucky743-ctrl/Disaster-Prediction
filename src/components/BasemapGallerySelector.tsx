@@ -104,8 +104,15 @@ export const BasemapGallerySelector: React.FC<BasemapGalleryProps> = ({
                   </div>
 
                   {/* Title & Description */}
-                  <div className="text-xs font-semibold text-slate-200 group-hover:text-cyan-300 transition-colors line-clamp-1">
-                    {option.name}
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <span className="text-xs font-semibold text-slate-200 group-hover:text-cyan-300 transition-colors line-clamp-1">
+                      {option.name}
+                    </span>
+                    {option.id === 'osm_standard' && (
+                      <span className="shrink-0 text-[8px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 tracking-wider">
+                        Default
+                      </span>
+                    )}
                   </div>
                   <div className="text-[11px] text-slate-400 line-clamp-2 mt-0.5 leading-tight">
                     {option.description}

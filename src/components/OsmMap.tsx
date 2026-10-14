@@ -23,7 +23,8 @@ import {
   Radio,
   Eye,
   Crosshair,
-  Maximize2
+  Maximize2,
+  ChevronDown
 } from 'lucide-react';
 
 interface OsmMapProps {
@@ -46,8 +47,9 @@ export const OsmMap: React.FC<OsmMapProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const layersGroupRef = useRef<{ [key: string]: L.LayerGroup }>({});
 
-  const [activeBasemap, setActiveBasemap] = useState<BasemapOption>(BASEMAP_GALLERY[2]); // CartoDB Dark Matter default for high-contrast emergency ops
+  const [activeBasemap, setActiveBasemap] = useState<BasemapOption>(BASEMAP_GALLERY[0]); // OpenStreetMap Standard default view
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
   // Layer Toggles
@@ -551,33 +553,140 @@ export const OsmMap: React.FC<OsmMapProps> = ({
         </button>
       </div>
 
-      {/* Map Legend Overlay (Top Right beneath Leaflet zoom) */}
-      <div className="hidden lg:block absolute top-16 right-4 z-[990] bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-2xl text-[11px] text-slate-300 w-44">
-        <div className="font-bold text-slate-100 uppercase tracking-wider mb-2 text-[10px] flex items-center justify-between">
-          <span>Hazard Legend</span>
-          <Eye className="w-3 h-3 text-cyan-400" />
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-            <span>Critical Alert (Red)</span>
+      {/* Interactive Map Legend at Annotated Location (Left Side) */}
+      <div className="absolute top-20 sm:top-16 left-4 z-[990] w-64 sm:w-72 select-none">
+        <div className="bg-slate-900/95 border border-slate-700/90 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden transition-all duration-200">
+          {/* Legend Header with Collapse Toggle */}
+          <div
+            onClick={() => setIsLegendCollapsed(!isLegendCollapsed)}
+            className="flex items-center justify-between px-3 py-2 bg-slate-800/80 hover:bg-slate-800 cursor-pointer border-b border-slate-700/60 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-xs font-bold text-white tracking-wide uppercase">
+                Map Annotations & Legend
+              </span>
+            </div>
+            <button
+              type="button"
+              className="text-[10px] text-slate-400 hover:text-cyan-300 font-mono flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900/60 border border-slate-700/60"
+              title={isLegendCollapsed ? 'Expand Legend' : 'Collapse Legend'}
+            >
+              <span>{isLegendCollapsed ? 'Show' : 'Hide'}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isLegendCollapsed ? '' : 'rotate-180'}`} />
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            <span>Warning (Orange)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
-            <span>Advisory (Cyan)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-0.5 bg-rose-500 border-t-2 border-dashed border-rose-400"></span>
-            <span>Tectonic Thrust Fault</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[12px]">🛡️</span>
-            <span>High-Ground Safe Camp</span>
-          </div>
+
+          {!isLegendCollapsed && (
+            <div className="p-2.5 text-[11px] space-y-2.5 max-h-[340px] overflow-y-auto">
+              {/* 1. Hazard Threat Zones */}
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Hazard Zones & Alert Levels</span>
+                  <AlertTriangle className="w-3 h-3 text-amber-400" />
+                </div>
+                <div className="space-y-1 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded bg-red-500/40 border border-red-500 flex items-center justify-center shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                    </span>
+                    <div>
+                      <span className="font-semibold text-red-300">Critical Alert (Red)</span>
+                      <span className="text-[9px] text-slate-400 block leading-tight">FoS &lt; 1.0 • Immediate evacuation</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded bg-amber-500/40 border border-amber-500 flex items-center justify-center shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    </span>
+                    <div>
+                      <span className="font-semibold text-amber-300">Warning Zone (Orange)</span>
+                      <span className="text-[9px] text-slate-400 block leading-tight">High creep rate / flood surge</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded bg-cyan-500/40 border border-cyan-500 flex items-center justify-center shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    </span>
+                    <div>
+                      <span className="font-semibold text-cyan-300">Advisory Zone (Cyan)</span>
+                      <span className="text-[9px] text-slate-400 block leading-tight">Elevated seismic / slope strain</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Tectonic Fault Lines */}
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Tectonic Fault Lines</span>
+                  <Radio className="w-3 h-3 text-rose-400" />
+                </div>
+                <div className="space-y-1 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80 text-[10px]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-0.5 border-t-2 border-dashed border-rose-500 shrink-0" />
+                    <span className="text-slate-200">Main Central Thrust (MCT)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-0.5 border-t-2 border-dashed border-pink-500 shrink-0" />
+                    <span className="text-slate-200">Main Boundary Thrust (MBT)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Sensor Station Markers */}
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>IoT Sensor Stations</span>
+                  <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80 text-[10px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs">💧</span>
+                    <span className="text-slate-300">Piezometer</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">📐</span>
+                    <span className="text-slate-300">Inclinometer</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs">🌊</span>
+                    <span className="text-slate-300">River Radar</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs">📉</span>
+                    <span className="text-slate-300">Seismograph</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 col-span-2">
+                    <span className="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">🌧️</span>
+                    <span className="text-slate-300">AWS Weather Rain Gauge</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Evacuation Infrastructure */}
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Evacuation Infrastructure</span>
+                  <Shield className="w-3 h-3 text-emerald-400" />
+                </div>
+                <div className="space-y-1 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80 text-[10px]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">🛡️</span>
+                    <span className="text-emerald-300 font-semibold">Safe High-Ground Haven</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-0.5 border-t-2 border-dashed border-emerald-400 shrink-0" />
+                    <span className="text-slate-300">Clear Evacuation Route</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-0.5 border-t-2 border-dashed border-amber-400 shrink-0" />
+                    <span className="text-slate-300">Caution Route</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
